@@ -1,0 +1,7 @@
+librosa>=0.10.0
+numpy>=1.23
+scipy>=1.9
+soundfile>=0.12
+matplotlib>=3.6
+audioread>=3.0
+midiutil>=1.2

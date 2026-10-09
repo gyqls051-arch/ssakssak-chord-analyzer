@@ -1,0 +1,9 @@
+.build_venv/
+build/
+__pycache__/
+*.pyc
+*.spec
+chords.txt
+*_timeline.png
+dist/
+.claude/
