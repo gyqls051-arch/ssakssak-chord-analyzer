@@ -57,3 +57,16 @@ jobs:
             --generate-notes `
             "dist/SsakSsakChordAnalyzer.exe" `
             "LICENSE"
+
+      - name: Bump version.json for auto-update
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}" -replace '^v',''
+          $j = Get-Content version.json -Raw | ConvertFrom-Json
+          $j.latest_version = $ver
+          $j | ConvertTo-Json -Depth 5 | Set-Content version.json -Encoding utf8
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add version.json
+          git commit -m "chore: bump version.json to $ver [skip ci]"
+          git push
