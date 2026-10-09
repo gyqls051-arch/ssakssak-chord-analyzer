@@ -20,6 +20,13 @@ from tkinter import filedialog, messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
 
 import analyze
+import ssak_update
+from version import APP_VERSION
+
+# 리포 루트의 version.json (raw.githubusercontent — 무료, CI가 태그 릴리스 때 갱신)
+VERSION_INFO_URL = (
+    "https://raw.githubusercontent.com/gyqls051-arch/ssakssak-chord-analyzer/main/version.json"
+)
 
 AUDIO_FILETYPES = [
     ("오디오 파일", "*.mp3 *.wav *.flac *.m4a *.ogg"),
@@ -113,6 +120,12 @@ class App:
         self.status_var = tk.StringVar(value="대기 중")
         ttk.Label(root, textvariable=self.status_var, padding=(10, 4),
                   relief="sunken").pack(fill="x", side="bottom")
+
+        # 백그라운드 업데이트 체크 → 결과는 root.after 로 GUI 스레드에 marshal
+        ssak_update.check_for_update(
+            APP_VERSION, VERSION_INFO_URL,
+            lambda d: self.root.after(0, self._on_update_result, d),
+        )
 
         self.append(
             "음원 코드/조성 분석기\n"
@@ -275,6 +288,20 @@ class App:
         self.text.config(state="normal")
         self.text.delete("1.0", "end")
         self.text.config(state="disabled")
+
+
+    def _on_update_result(self, d):
+        kind = d.get("kind")
+        if kind == "uptodate" or kind == "error":
+            return
+        url = d.get("download_url") or "https://www.ssakkimchi.com"
+        notes = d.get("release_notes") or ""
+        msg = d.get("message", "") + (f"\n\n{notes}" if notes else "")
+        msg += "\n\n다운로드 페이지를 열까요?"
+        title = "업데이트 필요" if kind in ("force_update", "killswitch") else "업데이트 안내"
+        if messagebox.askyesno(title, msg):
+            import webbrowser
+            webbrowser.open(url)
 
 
 def main():
