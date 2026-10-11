@@ -14,6 +14,7 @@ import re
 import sys
 import threading
 import traceback
+import webbrowser
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -115,6 +116,29 @@ class App:
         self.text = ScrolledText(root, wrap="word", font=("Malgun Gothic", 10),
                                  state="disabled", padx=8, pady=8)
         self.text.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # --- 자매제품 띠배너 (OFFCUT STUDIO) ---
+        adbar = tk.Frame(root, bg="#28324c", cursor="hand2")
+        adbar.pack(fill="x", side="bottom")
+        ad_inner = tk.Frame(adbar, bg="#28324c")
+        ad_inner.pack(fill="x", padx=10, pady=6)
+        tk.Label(ad_inner, text="O", bg="#ff5a2e", fg="#fff",
+                 font=("Malgun Gothic", 12, "bold"), width=2
+                 ).pack(side="left", padx=(0, 10))
+        ad_text = tk.Frame(ad_inner, bg="#28324c")
+        ad_text.pack(side="left", fill="x", expand=True)
+        tk.Label(ad_text, text="OFFCUT STUDIO  ·  자매 제품",
+                 bg="#28324c", fg="#ffffff",
+                 font=("Malgun Gothic", 9, "bold"), anchor="w").pack(fill="x")
+        tk.Label(ad_text, text="긴 영상, 컷만 쏙쏙 뽑는 프리미어 편집 가속기",
+                 bg="#28324c", fg="#cdd3e2",
+                 font=("Malgun Gothic", 8), anchor="w").pack(fill="x")
+        tk.Label(ad_inner, text="보러가기 →", bg="#ff5a2e", fg="#fff",
+                 font=("Malgun Gothic", 8, "bold"),
+                 padx=10, pady=3).pack(side="right")
+        for w in (adbar, ad_inner, ad_text, *ad_inner.winfo_children(), *ad_text.winfo_children()):
+            w.bind("<Button-1>", lambda e: webbrowser.open(
+                "https://www.offcut.dev/?utm_source=ssakssak_chord&utm_medium=app_banner"))
 
         # --- 상태바 ---
         self.status_var = tk.StringVar(value="대기 중")
