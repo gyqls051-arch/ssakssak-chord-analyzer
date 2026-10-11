@@ -68,5 +68,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add version.json
-          git commit -m "chore: bump version.json to $ver [skip ci]"
-          git push
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "chore: bump version.json to $ver [skip ci]"
+            git push origin HEAD:main
+          } else {
+            echo "version.json already at $ver — nothing to commit"
+          }
