@@ -65,13 +65,22 @@ def compare_versions(a: str, b: str) -> int:
 
 
 def _is_safe_http_url(url: object) -> bool:
-    if not isinstance(url, str):
+    if not isinstance(url, str) or any(c.isspace() or ord(c) < 32 for c in url):
         return False
     try:
         p = urlparse(url)
-    except Exception:
+        return (p.scheme == "https" and p.hostname == "github.com"
+                and not p.username and not p.password and p.port in (None, 443)
+                and p.path.startswith("/gyqls051-arch/")
+                and "/releases/" in p.path and not p.query and not p.fragment
+                and "%" not in p.path and ".." not in p.path)
+    except ValueError:
         return False
-    return p.scheme in ("http", "https") and bool(p.netloc)
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise ValueError("Update metadata redirect refused")
 
 
 @dataclass
@@ -95,8 +104,14 @@ class UpdateDecision:
 
 def fetch_version_json(url: str, timeout: float = CHECK_TIMEOUT) -> dict:
     """원격 version.json을 읽는다. 실패 시 예외를 던진다 — 호출자가 잡을 것."""
+    p = urlparse(url)
+    if (p.scheme != "https" or p.hostname != "raw.githubusercontent.com"
+            or p.username or p.password or p.port not in (None, 443)
+            or not p.path.startswith("/gyqls051-arch/") or not p.path.endswith("/version.json")
+            or p.query or p.fragment or "%" in p.path or ".." in p.path):
+        raise ValueError("Untrusted version metadata URL")
     req = urllib.request.Request(url, headers={"User-Agent": "ssakssak-update-check"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with urllib.request.build_opener(_NoRedirect()).open(req, timeout=timeout) as resp:
         raw = resp.read(MAX_BYTES + 1)
     if len(raw) > MAX_BYTES:
         raise ValueError("version.json oversized")

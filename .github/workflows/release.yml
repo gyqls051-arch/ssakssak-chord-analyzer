@@ -16,6 +16,10 @@ jobs:
   build:
     name: Build exe and publish release
     runs-on: windows-latest
+    env:
+      SSAK_SIGN_THUMBPRINT: ${{ vars.SSAK_SIGN_THUMBPRINT }}
+      SSAK_SIGN_TIMESTAMP: ${{ vars.SSAK_SIGN_TIMESTAMP }}
+      SSAK_RELEASE_BUILD: "1"
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -41,9 +45,16 @@ jobs:
 
       - name: Build exe
         run: |
-          pyinstaller --noconfirm --onefile --windowed --name "SsakSsakChordAnalyzer" `
+          pyinstaller --noconfirm --onefile --windowed --version-file version_info.txt --name "SsakSsakChordAnalyzer" `
             --collect-all librosa --collect-all soundfile --collect-all audioread `
             --hidden-import matplotlib.backends.backend_agg gui.py
+
+      - name: Sign and verify update executable
+        env:
+          SSAK_SIGN_PFX: ${{ secrets.SSAK_SIGN_PFX }}
+          SSAK_SIGN_PASSWORD: ${{ secrets.SSAK_SIGN_PASSWORD }}
+        shell: pwsh
+        run: ./tools/sign_release.ps1 -Artifact "dist/SsakSsakChordAnalyzer.exe" -Product "SsakSsak Chord Analyzer" -Version "1.0.1"
 
       - name: Publish release
         env:

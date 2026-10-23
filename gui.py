@@ -22,6 +22,7 @@ from tkinter.scrolledtext import ScrolledText
 
 import analyze
 import ssak_update
+from ssak_installer import Client as UpdateClient, Config as UpdateConfig
 from version import APP_VERSION
 
 # 리포 루트의 version.json (raw.githubusercontent — 무료, CI가 태그 릴리스 때 갱신)
@@ -145,10 +146,16 @@ class App:
         ttk.Label(root, textvariable=self.status_var, padding=(10, 4),
                   relief="sunken").pack(fill="x", side="bottom")
 
-        # 백그라운드 업데이트 체크 → 결과는 root.after 로 GUI 스레드에 marshal
+        self._update_results = queue.Queue()
+        self._update_installing = False
+        self._update_client = UpdateClient(
+            UpdateConfig("ssakssak-chord-analyzer", "SsakSsakChordAnalyzer.exe", "portable", "SsakSsak Chord Analyzer"),
+            APP_VERSION, self._update_results.put)
+        self._update_client.recover()
+        # 백그라운드 업데이트 체크 → Tk 호출 없이 큐로 GUI 스레드에 전달
         ssak_update.check_for_update(
             APP_VERSION, VERSION_INFO_URL,
-            lambda d: self.root.after(0, self._on_update_result, d),
+            lambda d: self._update_results.put(d),
         )
 
         self.append(
@@ -173,6 +180,8 @@ class App:
     # --- UI 동작 ---
 
     def pick_file(self):
+        if self._update_installing:
+            return
         if self.running:
             return
         path = filedialog.askopenfilename(title="분석할 음원 파일 선택",
@@ -194,6 +203,8 @@ class App:
             btn.config(state=state)
 
     def on_analyze(self):
+        if self._update_installing:
+            return
         if self.running or not self.last_input:
             return
         self.start(self.last_input)
@@ -214,6 +225,10 @@ class App:
     STAGE_RE = re.compile(r"\[(\d)/6\]\s*(.+)")
 
     def poll_queue(self):
+        try:
+            self._on_update_result(self._update_results.get_nowait())
+        except queue.Empty:
+            pass
         try:
             while True:
                 item = self.q.get_nowait()
@@ -316,16 +331,28 @@ class App:
 
     def _on_update_result(self, d):
         kind = d.get("kind")
-        if kind == "uptodate" or kind == "error":
-            return
-        url = d.get("download_url") or "https://www.ssakkimchi.com"
-        notes = d.get("release_notes") or ""
-        msg = d.get("message", "") + (f"\n\n{notes}" if notes else "")
-        msg += "\n\n다운로드 페이지를 열까요?"
-        title = "업데이트 필요" if kind in ("force_update", "killswitch") else "업데이트 안내"
-        if messagebox.askyesno(title, msg):
-            import webbrowser
-            webbrowser.open(url)
+        if kind in ("new_version", "force_update"):
+            self._update_client.begin(d.get("latest", ""))
+        elif kind == "install_ready":
+            if self.running:
+                self._update_client.cancel()
+                messagebox.showinfo("업데이트 대기", "분석 중이라 설치를 미뤘습니다. 다음 실행 때 다시 확인합니다.")
+                return
+            if messagebox.askyesno("업데이트 준비 완료", "검증된 새 버전으로 업데이트하고 다시 시작할까요?", default="no"):
+                if self.running:
+                    self._update_client.cancel()
+                    return
+                self._update_installing = True
+                if not self._update_client.install():
+                    self._update_installing = False
+            else:
+                self._update_client.cancel()
+        elif kind == "install_started":
+            self.root.destroy()
+        elif kind == "install_error":
+            self._update_installing = False
+            messagebox.showinfo("업데이트 보류", d.get("message", "업데이트하지 못했습니다.") +
+                                "\n현재 앱은 계속 사용할 수 있습니다.")
 
 
 def main():

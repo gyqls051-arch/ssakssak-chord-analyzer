@@ -16,7 +16,7 @@ echo [3/4] Running tests...
 .build_venv\Scripts\python.exe test_analyze.py || goto :error
 
 echo [4/4] Building GUI exe...
-.build_venv\Scripts\python.exe -m PyInstaller --noconfirm --onefile --windowed --name "SsakSsakChordAnalyzer" ^
+.build_venv\Scripts\python.exe -m PyInstaller --noconfirm --onefile --windowed --version-file version_info.txt --name "SsakSsakChordAnalyzer" ^
   --collect-all librosa --collect-all soundfile --collect-all audioread ^
   --hidden-import matplotlib.backends.backend_agg gui.py || goto :error
 
