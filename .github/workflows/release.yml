@@ -45,7 +45,7 @@ jobs:
 
       - name: Build exe
         run: |
-          pyinstaller --noconfirm --onefile --windowed --version-file version_info.txt --name "SsakSsakChordAnalyzer" `
+          pyinstaller --noconfirm --onefile --windowed --version-file version_info.txt --icon "assets/brand/app.ico" --add-data "assets/brand;assets/brand" --name "SsakSsakChordAnalyzer" `
             --collect-all librosa --collect-all soundfile --collect-all audioread `
             --hidden-import matplotlib.backends.backend_agg gui.py
 

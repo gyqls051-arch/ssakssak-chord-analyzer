@@ -357,6 +357,13 @@ class App:
 
 def main():
     root = tk.Tk()
+    icon_root = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    icon_dir = os.path.join(icon_root, "assets", "brand")
+    if sys.platform == "win32":
+        root.iconbitmap(default=os.path.join(icon_dir, "app.ico"))
+    else:
+        root._brand_icon = tk.PhotoImage(file=os.path.join(icon_dir, "app.png"))
+        root.iconphoto(True, root._brand_icon)
     try:
         from ctypes import windll
         windll.shcore.SetProcessDpiAwareness(1)  # 고해상도 화면에서 흐릿함 방지
